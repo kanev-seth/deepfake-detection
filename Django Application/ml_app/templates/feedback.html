@@ -1,0 +1,448 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="feedback-container">
+  <div class="feedback-card">
+    <div class="card-header">
+      <h1 class="feedback-title">We'd Love Your Feedback</h1>
+      <p class="feedback-subtitle">Help us improve our deepfake detection system</p>
+    </div>
+    
+    <form method="post" class="feedback-form">
+      {% csrf_token %}
+      
+      <div class="form-group">
+        <label for="email">Your Email</label>
+        <div class="input-container">
+          <input type="email" id="email" name="email" placeholder="your.email@example.com" required>
+          <div class="input-focus-effect"></div>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="feedback-text">Your Feedback</label>
+        <div class="input-container textarea-container">
+          <textarea id="feedback-text" name="feedback" rows="5" placeholder="Share your thoughts with us..." maxlength="500"></textarea>
+          <div class="input-focus-effect"></div>
+        </div>
+        <div class="char-counter"><span id="char-count">0</span>/500</div>
+      </div>
+      
+      <div class="form-group rating-group">
+        <label>How would you rate your experience?</label>
+        <div class="star-rating">
+          <input type="radio" id="star5" name="rating" value="5"><label for="star5" title="Outstanding"></label>
+          <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="Very Good"></label>
+          <input type="radio" id="star3" name="rating" value="3"><label for="star3" title="Good"></label>
+          <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="Fair"></label>
+          <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="Poor"></label>
+        </div>
+      </div>
+      
+      <button type="submit" class="submit-btn">
+        <span>Submit Feedback</span>
+        <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </button>
+    </form>
+  </div>
+</div>
+
+<style>
+  .feedback-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+    padding: 2rem;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(135deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.05) 100%);
+  }
+  
+  /* Card styling */
+  .feedback-card {
+    background-color: white;
+    border-radius: 16px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+    padding: 0;
+    width: 100%;
+    max-width: 520px;
+    text-align: center;
+    overflow: hidden;
+    transform: translateY(0);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+  }
+  
+  .feedback-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+  }
+  
+  /* Card header with gradient */
+  .card-header {
+    background: linear-gradient(to right, #76c684, #5ab4a0);
+    padding: 2.5rem 2.5rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .card-header::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='rgba(255,255,255,0.1)' fill-rule='evenodd'/%3E%3C/svg%3E");
+    opacity: 0.5;
+  }
+  
+  .feedback-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    position: relative;
+  }
+  
+  .feedback-subtitle {
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 0;
+    font-size: 1.1rem;
+    position: relative;
+  }
+  
+  /* Form styling */
+  .feedback-form {
+    text-align: left;
+    padding: 2.5rem;
+  }
+  
+  .form-group {
+    margin-bottom: 1.8rem;
+    position: relative;
+  }
+  
+  label {
+    display: block;
+    margin-bottom: 0.6rem;
+    font-weight: 500;
+    color: #333;
+    transition: color 0.3s ease;
+  }
+  
+  .input-container {
+    position: relative;
+    margin-bottom: 0.5rem;
+  }
+  
+  input[type="email"], textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid #e6e6e6;
+    border-radius: 8px;
+    font-size: 1rem;
+    background-color: #f9f9f9;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .input-focus-effect {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(to right, #76c684, #5ab4a0);
+    transition: width 0.3s ease, left 0.3s ease;
+    z-index: 2;
+  }
+  
+  input[type="email"]:focus, textarea:focus {
+    border-color: #e6e6e6;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    outline: none;
+  }
+  
+  input[type="email"]:focus ~ .input-focus-effect,
+  textarea:focus ~ .input-focus-effect {
+    width: 100%;
+    left: 0;
+  }
+  
+  input[type="email"]:focus + label,
+  textarea:focus + label {
+    color: #76c684;
+  }
+  
+  textarea {
+    resize: none;
+    height: 140px;
+  }
+  
+  .char-counter {
+    font-size: 0.85rem;
+    color: #999;
+    text-align: right;
+    margin-top: 0.5rem;
+    transition: color 0.3s ease;
+  }
+  
+  /* Rating stars */
+  .rating-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .star-rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+  
+  .star-rating input {
+    display: none;
+  }
+  
+  .star-rating label {
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    margin: 0 4px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23dddddd' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'%3E%3C/polygon%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100%;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  
+  .star-rating input:checked ~ label,
+  .star-rating label:hover,
+  .star-rating label:hover ~ label {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%2386d694' stroke='%2386d694' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'%3E%3C/polygon%3E%3C/svg%3E");
+    transform: scale(1.2) rotate(3deg);
+  }
+  
+  .star-rating label:hover {
+    transform: scale(1.3) rotate(5deg);
+  }
+  
+  /* Submit button */
+  .submit-btn {
+    display: block;
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(to right, #76c684, #5ab4a0);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(134, 214, 148, 0.3);
+    margin-top: 1.5rem;
+  }
+  
+  .submit-btn span {
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s ease;
+  }
+  
+  .submit-btn:hover {
+    box-shadow: 0 7px 20px rgba(134, 214, 148, 0.4);
+    transform: translateY(-2px);
+  }
+  
+  .submit-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 10px rgba(134, 214, 148, 0.2);
+  }
+  
+  .submit-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, #5ab4a0, #76c684);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .submit-btn:hover::before {
+    opacity: 1;
+  }
+  
+  /* Animations for text area */
+  @keyframes focusPulse {
+    0% { box-shadow: 0 0 0 0 rgba(134, 214, 148, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(134, 214, 148, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(134, 214, 148, 0); }
+  }
+  
+  textarea:focus {
+    animation: focusPulse 2s infinite;
+  }
+  
+  /* Check icon for submit button */
+  .check-icon {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%) scale(0);
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease;
+    z-index: 2;
+  }
+  
+  .submit-btn:hover .check-icon {
+    transform: translateY(-50%) scale(1);
+  }
+  
+  /* Character count styling */
+  #char-count {
+    transition: all 0.3s ease;
+  }
+  
+  /* Media queries for responsiveness */
+  @media (max-width: 768px) {
+    .feedback-card {
+      max-width: 100%;
+      margin: 0 15px;
+    }
+    
+    .card-header {
+      padding: 2rem 1.5rem 1.5rem;
+    }
+    
+    .feedback-form {
+      padding: 1.5rem;
+    }
+    
+    .feedback-title {
+      font-size: 1.5rem;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('feedback-text');
+    const charCount = document.getElementById('char-count');
+    const submitBtn = document.querySelector('.submit-btn');
+    const emailInput = document.getElementById('email');
+    const formGroups = document.querySelectorAll('.form-group');
+    
+    // Character counter
+    textarea.addEventListener('input', function() {
+      const currentLength = this.value.length;
+      charCount.textContent = currentLength;
+      
+      // Color change based on character count
+      if (currentLength >= 450) {
+        charCount.style.color = '#e74c3c';
+      } else if (currentLength >= 350) {
+        charCount.style.color = '#e67e22';
+      } else {
+        charCount.style.color = '#999';
+      }
+      
+      // Animate counter when typing
+      charCount.style.transform = 'scale(1.2)';
+      setTimeout(() => {
+        charCount.style.transform = 'scale(1)';
+      }, 200);
+    });
+    
+    // Form focus effects
+    formGroups.forEach(group => {
+      const input = group.querySelector('input, textarea');
+      const label = group.querySelector('label');
+      
+      if (input && label) {
+        input.addEventListener('focus', () => {
+          label.style.color = '#76c684';
+        });
+        
+        input.addEventListener('blur', () => {
+          label.style.color = '#333';
+        });
+      }
+    });
+    
+    // Submit button animation
+    submitBtn.addEventListener('click', function(e) {
+      // Only for demo animation purposes - remove this in production
+      if (!emailInput.value) return;
+      
+      e.preventDefault();
+      
+      const btnText = submitBtn.querySelector('span');
+      const checkIcon = submitBtn.querySelector('.check-icon');
+      
+      btnText.style.opacity = '0';
+      checkIcon.style.transform = 'translateY(-50%) scale(1)';
+      submitBtn.style.width = '100px';
+      submitBtn.style.margin = '1.5rem auto';
+      
+      setTimeout(() => {
+        // Normally form would submit here
+        // For demo, reset the animation after 2 seconds
+        submitBtn.style.width = '100%';
+        submitBtn.style.margin = '1.5rem 0';
+        btnText.style.opacity = '1';
+        checkIcon.style.transform = 'translateY(-50%) scale(0)';
+        
+        // In production, you'd submit the form here
+        // document.querySelector('form').submit();
+      }, 2000);
+    });
+    
+    // Star rating hover effect - adds title for accessibility
+    const stars = document.querySelectorAll('.star-rating label');
+    const titles = ['Poor', 'Fair', 'Good', 'Very Good', 'Outstanding'];
+    
+    stars.forEach((star, index) => {
+      star.addEventListener('mouseover', () => {
+        document.querySelector('.rating-group > label').textContent = 
+          `How would you rate your experience? (${titles[4-index]})`;
+      });
+      
+      star.addEventListener('mouseout', () => {
+        document.querySelector('.rating-group > label').textContent = 
+          'How would you rate your experience?';
+      });
+    });
+    
+    // Entry animation for form elements
+    const animateFormElements = () => {
+      const elements = document.querySelectorAll('.form-group, .submit-btn');
+      elements.forEach((element, index) => {
+        element.style.opacity = '0';
+        element.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+          element.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          element.style.opacity = '1';
+          element.style.transform = 'translateY(0)';
+        }, 100 + (index * 100));
+      });
+    };
+    
+    // Run entry animation
+    animateFormElements();
+  });
+</script>
+{% endblock %}
