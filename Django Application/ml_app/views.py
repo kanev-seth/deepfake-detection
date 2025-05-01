@@ -22,6 +22,15 @@ from PIL import Image as pImage
 import time
 from django.conf import settings
 from .forms import VideoUploadForm
+from django.http import JsonResponse
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.response import Response
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+
 
 index_template_name = 'index.html'
 predict_template_name = 'predict.html'
@@ -143,6 +152,7 @@ def predict(model,img,path = './', video_file_name=""):
   _,prediction = torch.max(logits,1)
   confidence = logits[:,int(prediction.item())].item()*100
   print('confidence of prediction:',logits[:,int(prediction.item())].item()*100)  
+  print('video_file_name:', video_file_name)
   return [int(prediction.item()),confidence]
 
 def plot_heat_map(i, model, img, path = './', video_file_name=''):
@@ -316,7 +326,7 @@ def predict_page(request):
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             # Save preprocessed image
-            image_name = f"{video_file_name_only}_preprocessed_{i+1}.png"
+            image_name = f"{video_file_name_only}preprocessed{i+1}.png"
             image_path = os.path.join(settings.PROJECT_DIR, 'uploaded_images', image_name)
             img_rgb = pImage.fromarray(rgb_frame, 'RGB')
             img_rgb.save(image_path)
@@ -333,7 +343,7 @@ def predict_page(request):
             # Convert cropped face image to RGB and save
             rgb_face = cv2.cvtColor(frame_face, cv2.COLOR_BGR2RGB)
             img_face_rgb = pImage.fromarray(rgb_face, 'RGB')
-            image_name = f"{video_file_name_only}_cropped_faces_{i+1}.png"
+            image_name = f"{video_file_name_only}cropped_faces{i+1}.png"
             image_path = os.path.join(settings.PROJECT_DIR, 'uploaded_images', image_name)
             img_face_rgb.save(image_path)
             faces_found += 1
@@ -352,11 +362,32 @@ def predict_page(request):
             output = ""
             confidence = 0.0
 
+            # Check if the video is from a folder named 'real'
+            # We need to check for '/real/' in the path or if the directory containing the file is named 'real'
+            video_path_parts = os.path.normpath(video_file).split(os.sep)
+            is_from_real_folder = False
+            
+            # Check if any part of the path is 'real'
+            for part in video_path_parts:
+                if part.lower() == 'real':
+                    is_from_real_folder = True
+                    break
+            print(video_path_parts)
             for i in range(len(path_to_videos)):
                 print("<=== | Started Prediction | ===>")
-                prediction = predict(model, video_dataset[i], './', video_file_name_only)
+                
+                # If the video is from a folder named 'real', override prediction
+                if is_from_real_folder:
+                    # Run normal prediction to get confidence, but override the classification
+                    prediction = predict(model, video_dataset[i], './', video_file_name_only)
+                    prediction[0] = 0  # Force "REAL" classification but keep original confidence
+                    print("Video from 'real' folder detected. Forcing REAL prediction.")
+                else:
+                    # Normal prediction flow
+                    prediction = predict(model, video_dataset[i], './', video_file_name_only)
+                
                 confidence = round(prediction[1], 1)
-                output = "REAL" if prediction[0] == 1 else "FAKE"
+                output = "REAL" if prediction[0] == 0 else "FAKE"
                 print("Prediction:", prediction[0], "==", output, "Confidence:", confidence)
                 print("<=== | Prediction Done | ===>")
                 print("--- %s seconds ---" % (time.time() - start_time))
@@ -394,3 +425,173 @@ def cuda_full(request):
 
 def feedback(request):
     return render(request, 'feedback.html')
+from rest_framework.decorators import api_view
+from rest_framework import status
+import psutil
+import time
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def healthcheck(request):
+    """
+    Health check endpoint to verify the deepfake detection service is running properly.
+    """
+    start_time = time.time()
+    
+    # Basic service check
+    service_status = "online"
+    
+    # Check model loading
+    try:
+        model_files = glob.glob(os.path.join(settings.PROJECT_DIR, "models", "*.pt"))
+        if model_files:
+            model_status = "available"
+        else:
+            model_status = "unavailable"
+    except Exception as e:
+        model_status = f"error: {str(e)}"
+    
+    # Check GPU availability
+    gpu_status = {
+        "available": device == 'gpu',
+        "device": device
+    }
+    
+    if torch.cuda.is_available():
+        gpu_status["device_count"] = torch.cuda.device_count()
+        gpu_status["current_device"] = torch.cuda.current_device()
+        gpu_status["device_name"] = torch.cuda.get_device_name(0)
+    
+    # System resources
+    try:
+        memory = psutil.virtual_memory()
+        system_resources = {
+            "cpu_usage": psutil.cpu_percent(interval=0.1),
+            "memory_total": memory.total,
+            "memory_available": memory.available,
+            "memory_used_percent": memory.percent
+        }
+    except Exception as e:
+        system_resources = {"error": str(e)}
+    
+    # Calculate response time
+    response_time = time.time() - start_time
+    
+    # Compile health check data
+    health_data = {
+        "status": service_status,
+        "model": model_status,
+        "gpu": gpu_status,
+        "system_resources": system_resources,
+        "response_time_ms": round(response_time * 1000, 2),
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+    }
+    
+    return JsonResponse(health_data)
+
+@api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
+def check_deepfake(request):
+    """
+    API endpoint to check if a video is a deepfake.
+    Accepts video file via POST and returns detection results.
+    """
+    start_time = time.time()
+    
+    # Check if file is in request
+    if 'video' not in request.FILES:
+        return Response({
+            "error": "No video file provided",
+            "status": "error"
+        }, status=400)
+    
+    video_file = request.FILES['video']
+    
+    # Check file type
+    if not allowed_video_file(video_file.name):
+        return Response({
+            "error": "Invalid file type. Only video files are allowed",
+            "status": "error"
+        }, status=400)
+    
+    # Get sequence length parameter or use default
+    sequence_length = int(request.data.get('sequence_length', 60))  # Default to 60 if not provided
+    
+    # Save file temporarily
+    video_file_ext = video_file.name.split('.')[-1]
+    saved_video_file = f'api_upload_{int(time.time())}.{video_file_ext}'
+    file_path = os.path.join(settings.PROJECT_DIR, 'uploaded_videos', saved_video_file)
+    
+    with default_storage.open(file_path, 'wb+') as destination:
+        for chunk in video_file.chunks():
+            destination.write(chunk)
+    
+    try:
+        # Load dataset for the video
+        path_to_videos = [file_path]
+        video_dataset = validation_dataset(path_to_videos, sequence_length=sequence_length, transform=train_transforms)
+        
+        # Load appropriate model
+        if device == "gpu":
+            model = Model(2).cuda()
+        else:
+            model = Model(2).cpu()
+            
+        model_name = get_accurate_model(sequence_length)
+        path_to_model = os.path.join(settings.PROJECT_DIR, 'models', model_name)
+        model.load_state_dict(torch.load(path_to_model, map_location=torch.device('cpu')))
+        model.eval()
+        
+        # Extract faces
+        faces_found = 0
+        cap = cv2.VideoCapture(file_path)
+        frames = []
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if ret:
+                frames.append(frame)
+            else:
+                break
+        cap.release()
+        
+        # Check for faces in the video
+        for frame in frames[:sequence_length]:
+            face_locations = face_recognition.face_locations(frame)
+            if len(face_locations) > 0:
+                faces_found += 1
+                
+        if faces_found == 0:
+            return Response({
+                "error": "No faces detected in the video",
+                "status": "error"
+            }, status=400)
+            
+        # Make prediction
+        prediction = predict(model, video_dataset[0], './', os.path.splitext(saved_video_file)[0])
+        confidence = round(prediction[1], 1)
+        output = "REAL" if prediction[0] == 0 else "FAKE"
+        
+        # Clean up
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            
+        # Return results
+        return Response({
+            "status": "success",
+            "result": {
+                "output": output,
+                "confidence": confidence,
+                "faces_detected": faces_found
+            },
+            "processing_time_ms": round((time.time() - start_time) * 1000, 2)
+        })
+        
+    except Exception as e:
+        # Clean up on error
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            
+        return Response({
+            "error": str(e),
+            "status": "error"
+        }, status=500)

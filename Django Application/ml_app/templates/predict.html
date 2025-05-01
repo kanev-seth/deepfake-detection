@@ -1,80 +1,313 @@
 {% extends 'base.html' %}
 {% load static %}
-{%block content%}
-{%if no_faces%}
-<div class="container">
-  <div class="logo text-center mb-3"><img src="{% static 'images/logo1.png'%}" alt="Logo" ></div>
+{% block content %}
+<style>
+  /* Enhanced Dark Modern UI Styles - Prediction Page */
+  :root {
+    --primary: #6200ee;
+    --primary-light: #8a3bff;
+    --dark-bg: #121212;
+    --card-bg: #1e1e1e;
+    --surface: #282828;
+    --surface-hover: #303030;
+    --border: #3d3d3d;
+    --text: #e0e0e0;
+    --text-light: #a0a0a0;
+    --success: #00c853;
+    --error: #ff5252;
+  }
+  
+  body {
+    background-color: var(--dark-bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  }
+  
+  .dark-container {
+    background-color: var(--card-bg);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    padding: 2.5rem;
+    max-width: 95%;
+    margin: 3rem auto;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .dark-container::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  }
+  
+  .logo {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .logo img {
+    height: 60px;
+    width: auto;
+  }
+  
+  .section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 2rem 0 1rem;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .section-title::after {
+    content: "";
+    flex-grow: 1;
+    height: 1px;
+    background: var(--border);
+    margin-left: 15px;
+  }
+  
+  .section-icon {
+    margin-right: 10px;
+    color: var(--primary-light);
+  }
+  
+  /* Images gallery */
+  .image-gallery {
+    display: flex;
+    overflow-x: auto;
+    gap: 15px;
+    padding: 1rem 0;
+    margin-bottom: 2rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) var(--surface);
+  }
+  
+  .image-gallery::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  .image-gallery::-webkit-scrollbar-track {
+    background: var(--surface);
+    border-radius: 3px;
+  }
+  
+  .image-gallery::-webkit-scrollbar-thumb {
+    background-color: var(--primary);
+    border-radius: 3px;
+  }
+  
+  .image-item {
+    flex: 0 0 auto;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid var(--border);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+  
+  .image-item:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary);
+  }
+  
+  .preprocess {
+    height: 250px;
+    width: auto;
+    display: block;
+  }
+  
+  .faces {
+    height: 150px;
+    width: auto;
+    display: block;
+  }
+  
+  /* Error alert */
+  .error-alert {
+    background-color: rgba(255, 82, 82, 0.15);
+    border-left: 4px solid var(--error);
+    color: var(--error);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 2rem 0;
+    display: flex;
+    align-items: center;
+    font-size: 1.1rem;
+  }
+  
+  .error-icon {
+    margin-right: 15px;
+    flex-shrink: 0;
+  }
+  
+  /* Result section */
+  .result-section {
+    margin-top: 2rem;
+    text-align: center;
+    padding: 2rem 0;
+  }
+  
+  .result-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #ffffff;
+  }
+  
+  .video-container {
+    background-color: var(--surface);
+    border-radius: 12px;
+    padding: 8px;
+    margin: 1.5rem auto;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    position: relative;
+    width: fit-content;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  }
+  
+  video {
+    border-radius: 8px;
+    background-color: #121212;
+    display: block;
+  }
+  
+  .result-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    padding: 10px 30px;
+    border-radius: 30px;
+    margin: 1rem 0;
+  }
+  
+  .result-real {
+    background-color: rgba(0, 200, 83, 0.15);
+    color: var(--success);
+    border: 2px solid var(--success);
+  }
+  
+  .result-fake {
+    background-color: rgba(255, 82, 82, 0.15);
+    color: var(--error);
+    border: 2px solid var(--error);
+  }
+  
+  .result-icon {
+    margin-left: 15px;
+    height: 40px;
+    width: auto;
+  }
+</style>
+
+<div class="dark-container">
+  <div class="logo text-center">
+    <h1>DeepDetect | Deepfake Detection</h1>
+  </div>
   <hr />
-  <div class="alert alert-danger">
-    No faces detected. Cannot process the video.
-  </div>
+  
+  {% if no_faces %}
+    <div class="error-alert">
+      <svg class="error-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      No faces detected. Cannot process the video.
+    </div>
+  {% else %}
+    <h2 class="section-title">
+      <svg class="section-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+        <line x1="7" y1="2" x2="7" y2="22"></line>
+        <line x1="17" y1="2" x2="17" y2="22"></line>
+        <line x1="2" y1="12" x2="22" y2="12"></line>
+      </svg>
+      Frames Split
+    </h2>
+    <div class="image-gallery" id="preprocessed_images">
+      {% for each_image in preprocessed_images %}
+        <div class="image-item">
+          <img src="{%static each_image%}" class="preprocess" alt="Preprocessed frame">
+        </div>
+      {% endfor %}
+    </div>
+
+    <h2 class="section-title">
+      <svg class="section-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
+      Face Cropped Frames
+    </h2>
+    <div class="image-gallery" id="faces_images">
+      {% for each_image in faces_cropped_images %}
+        <div class="image-item">
+          <img src="{%static each_image%}" class="faces" alt="Face cropped frame">
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="result-section">
+      <h2 class="result-title">
+        <svg class="section-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="23 7 16 12 23 17 23 7"></polygon>
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+        </svg>
+        Play to see Result
+      </h2>
+      
+      <div class="video-container">
+        <video height="320" width="640" id="predict-media" controls>
+          <source src="{{MEDIA_URL}}{{original_video}}" type="video/mp4" codecs="avc1.4d002a">
+        </video>
+      </div>
+      
+      {% if output == "REAL" %}
+        <div class="result-badge result-real">
+          Result: {{output}}
+          <img src="{% static 'images/thumpup.png'%}" alt="real" class="result-icon">
+        </div>
+      {% else %}
+        <div class="result-badge result-fake">
+          Result: {{output}}
+          <img src="{% static 'images/thumpdown.png'%}" alt="fake" class="result-icon">
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
 </div>
-{%else%}
-<div class="container">
-  <div class="logo text-center mb-3"><img src="{% static 'images/logo1.png'%}" alt="Logo" ></div>
-  <hr />
 
-  <h3>Frames Split</h3>
-  <div id="preprocessed_images" class="col-12 mt-4 mb-2">
-    {% for each_image in preprocessed_images %}
-    <img src="{%static each_image%}" class="preprocess" width=auto height="250" />
-    {%endfor%}
-  </div>
+{% endblock %}
 
-
-  <h3>Face Cropped Frames</h3>
-  <div id="faces_images" class="col-12 mb-2">
-    {% for each_image in faces_cropped_images %}
-    <img src="{%static each_image%}" class="faces" width=auto height="150" />
-    {%endfor%}
-  </div>
-
-  <div class="result text-center">
-    <h3>Play to see Result</h3>
-    <video height="320" width="640" id="predict-media" controls>
-      <source src="{{MEDIA_URL}}{{original_video}}" type="video/mp4" codecs="avc1.4d002a" />
-    </video>
-    {%if output == "REAL" %}
-    <h4 class="mx-auto">Result: <span style="color:green">{{output}}</span>
-      <img src="{% static 'images/thumpup.png'%}" alt="real" height="100px" width=auto>
-      {%else%}
-      <h4 class="mx-auto">Result: <span style="color:red">{{output}}</span>
-        <img src="{% static 'images/thumpdown.png'%}" alt="fake" height="100px" width=auto >
-      {%endif%}
-  </div>
-<!--
-  <h3>Heat Maps</h3>
-  <div id="heatmap_images" class="col-12 mb-4 ">
-    {% for each_heatmap_image in heatmap_images %}
-    <img src="{%static each_heatmap_image%}" class="heat-map" width="100" height="150" />
-    {%endfor%}
-  </div>
-</div>
--->
-{%endif%}
-{%endblock%}
-{%block js_cripts%}
+{% block js_cripts %}
 <script src="{%static 'js/face-api.min.js'%}"></script>
 <script>
   $(document).ready(function () {
     const video = document.getElementById("predict-media");
 
     Promise.all([
-    faceapi.nets.ssdMobilenetv1.loadFromUri('/static/json'),
+      faceapi.nets.ssdMobilenetv1.loadFromUri('/static/json'),
       faceapi.nets.tinyFaceDetector.loadFromUri("/static/json")
-      
-    ])
+    ]);
 
     var detectionTimeout;
     video.addEventListener("playing", () => {
       var canvas;
       if ($('canvas').length < 1) {
         canvas = faceapi.createCanvasFromMedia(video);
+        canvas.style.position = "absolute";
         canvas.style.top = video.offsetTop + "px";
         canvas.style.left = video.offsetLeft + "px";
-        document.body.append(canvas);
+        video.parentNode.appendChild(canvas);
       }
-      /* In order to be able to pause the video */
+      
       const displaySize = { width: video.width, height: video.height - 60 };
       faceapi.matchDimensions(canvas, displaySize);
 
@@ -84,27 +317,46 @@
         canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
         canvas.style.top = video.offsetTop + "px";
         canvas.style.left = video.offsetLeft + "px";
+        
         resizedDetections.forEach((result, i) => {
-          console.log(resizedDetections[i].box);
-          var result = '{{output}}';
+          var resultText = '{{output}}';
           var confidence = '{{confidence}}';
-          var drawOptions = {label: result.concat("  " , confidence , "%")};
-          if (result == 'REAL'){
-            drawOptions["boxColor"] = "#0f0";
+          var drawOptions = {
+            label: resultText.concat("  ", confidence, "%"),
+            lineWidth: 2,
+            fontSize: 18
+          };
+          
+          if (resultText == 'REAL') {
+            drawOptions["boxColor"] = "#00c853";
+          } else if (resultText == 'FAKE') {
+            drawOptions["boxColor"] = "#ff5252";
           }
-          else if (result == 'FAKE'){
-            drawOptions["boxColor"] = "#f00";
-          }
-          var box = { x: resizedDetections[i].box.x, y: resizedDetections[i].box.y, height: 100, width: 100 };
+          
+          var box = { 
+            x: resizedDetections[i].box.x, 
+            y: resizedDetections[i].box.y, 
+            height: 100, 
+            width: 100 
+          };
+          
           const drawBox = new faceapi.draw.DrawBox(box, drawOptions);
           drawBox.draw(canvas);
         });
-      }, 1);
+      }, 100);
     });
 
     video.addEventListener("paused", () => {
       clearTimeout(detectionTimeout);
     });
-  })
+    
+    // Make image galleries scrollable with horizontal mouse wheel
+    $('.image-gallery').on('wheel', function(event) {
+      if (event.originalEvent.deltaY !== 0) {
+        event.preventDefault();
+        $(this).scrollLeft($(this).scrollLeft() + event.originalEvent.deltaY);
+      }
+    });
+  });
 </script>
-{%endblock%}
+{% endblock %}
