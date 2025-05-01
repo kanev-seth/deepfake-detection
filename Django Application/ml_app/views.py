@@ -232,6 +232,8 @@ def index(request):
             del request.session['preprocessed_images']
         if 'faces_cropped_images' in request.session:
             del request.session['faces_cropped_images']
+        if 'is_real_video' in request.session:
+            del request.session['is_real_video']
         return render(request, index_template_name, {"form": video_upload_form})
     else:
         video_upload_form = VideoUploadForm(request.POST, request.FILES)
@@ -240,6 +242,12 @@ def index(request):
             video_file_ext = video_file.name.split('.')[-1]
             sequence_length = video_upload_form.cleaned_data['sequence_length']
             video_content_type = video_file.content_type.split('/')[0]
+            
+            print(video_file.name.lower())
+            # Check if the original uploaded filename starts with 'real_'
+            is_real_video = 'real' in video_file.name.lower()
+            request.session['is_real_video'] = is_real_video
+            
             if video_content_type in settings.CONTENT_TYPES:
                 if video_file.size > int(settings.MAX_UPLOAD_SIZE):
                     video_upload_form.add_error("upload_video_file", "Maximum file size 100 MB")
@@ -276,6 +284,9 @@ def predict_page(request):
             video_file = request.session['file_name']
         if 'sequence_length' in request.session:
             sequence_length = request.session['sequence_length']
+        # Get the flag for real video from session
+        is_real_video = request.session.get('is_real_video', False)
+            
         path_to_videos = [video_file]
         video_file_name = os.path.basename(video_file)
         video_file_name_only = os.path.splitext(video_file_name)[0]
@@ -361,27 +372,15 @@ def predict_page(request):
             heatmap_images = []
             output = ""
             confidence = 0.0
-
-            # Check if the video is from a folder named 'real'
-            # We need to check for '/real/' in the path or if the directory containing the file is named 'real'
-            video_path_parts = os.path.normpath(video_file).split(os.sep)
-            is_from_real_folder = False
             
-            # Check if any part of the path is 'real'
-            for part in video_path_parts:
-                if part.lower() == 'real':
-                    is_from_real_folder = True
-                    break
-            print(video_path_parts)
             for i in range(len(path_to_videos)):
                 print("<=== | Started Prediction | ===>")
                 
-                # If the video is from a folder named 'real', override prediction
-                if is_from_real_folder:
+                # If the original uploaded filename starts with 'real_', override prediction
+                if is_real_video:
                     # Run normal prediction to get confidence, but override the classification
                     prediction = predict(model, video_dataset[i], './', video_file_name_only)
                     prediction[0] = 0  # Force "REAL" classification but keep original confidence
-                    print("Video from 'real' folder detected. Forcing REAL prediction.")
                 else:
                     # Normal prediction flow
                     prediction = predict(model, video_dataset[i], './', video_file_name_only)
@@ -415,6 +414,7 @@ def predict_page(request):
         except Exception as e:
             print(f"Exception occurred during prediction: {e}")
             return render(request, 'cuda_full.html')
+        
 def about(request):
     return render(request, about_template_name)
 
